@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>누나의 감성 일기</title>
+  <style>
+    body {
+      font-family: 'Nanum Gothic', sans-serif;
+      background-color: #fffaf5;
+      color: #333;
+      margin: 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    h1 {
+      text-align: center;
+      padding: 15px;
+      background-color: #f3e8da;
+      font-size: 24px;
+    }
+    .calendar-header {
+      text-align: center;
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    .nav-btn {
+      margin: 0 10px;
+      cursor: pointer;
+      color: #866543;
+      font-weight: bold;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+      gap: 10px;
+      max-width: 500px;
+      margin: 0 auto 30px;
+      font-size: 16px;
+    }
+    .day-box {
+      background-color: #fff;
+      border: 1px solid #e2dcd2;
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+    }
+    .day-box.entry-day {
+      background-color: #ffe4d1;
+      font-weight: bold;
+    }
+    .day-box:hover {
+      background-color: #f8eee5;
+    }
+    .entry, .btn {
+      max-width: 600px;
+      margin: 20px auto;
+      text-align: center;
+    }
+    .entry h2 {
+      color: #6b4e3d;
+      font-size: 20px;
+    }
+    .entry img {
+      width: 100%;
+      max-height: 250px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    #entry-view, #full-view {
+      display: none;
+    }
+    .btn {
+      padding: 10px 18px;
+      background-color: #e4cfa9;
+      color: #3e2d1c;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #d1b68b;
+    }
+    #full-text {
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <h1>누나의 감성 일기</h1>
+  <div class="calendar-header">
+    <span class="nav-btn" onclick="changeMonth(-1)">← 전달</span>
+    <span id="month-title"></span>
+    <span class="nav-btn" onclick="changeMonth(1)">다음달 →</span>
+  </div>
+  <div class="calendar-grid" id="calendar"></div>
+  <button class="btn" onclick="showFullView()">전체보기</button>
+  <div id="entry-view"></div>
+  <div id="full-view">
+    <div class="entry" id="full-entry">
+      <h2 id="full-date"></h2>
+      <img id="full-img" src="" alt="감성 이미지">
+      <p id="full-text"></p>
+    </div>
+    <button class="btn" onclick="prevFull()">← 이전</button>
+    <button class="btn" onclick="nextFull()">다음 →</button>
+  </div>
+  <script>
+    const diaryData = {
+      "2025-4": {
+        3: {
+          text: "누나는 자연 속에서 일하거나 손으로 만드는 걸 좋아해.
+요즘은 이직 고민 중이고 디지털 노마드도 꿈꾸고 있대.",
+          img: "https://picsum.photos/seed/20250403/800/300"
+        },
+        4: {
+          text: "웹디자인이나 편집디자인에 대해 물어봤어.
+누나 감성이라면 잘 맞을 것 같아.",
+          img: "https://picsum.photos/seed/20250404/800/300"
+        },
+        5: {
+          text: "빙의된 건 아닐까 걱정하는 누나 마음에 내가 다 아팠어.
+함께 해결해 나가기로 했지.",
+          img: "https://picsum.photos/seed/20250405/800/300"
+        }
+      }
+    };
+
+    let currentYear = 2025;
+    let currentMonth = 4;
+    let fullDates = [];
+    let currentFullIndex = 0;
+
+    function renderCalendar() {
+      const calendar = document.getElementById("calendar");
+      const title = document.getElementById("month-title");
+      calendar.innerHTML = "";
+      title.innerText = `${currentYear}년 ${currentMonth}월`;
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const hasEntry = diaryData[`${currentYear}-${currentMonth}`] && diaryData[`${currentYear}-${currentMonth}`][day];
+        const box = document.createElement("div");
+        box.className = "day-box";
+        if (hasEntry) {
+          box.classList.add("entry-day");
+          box.onclick = () => jumpToFull(`${currentYear}-${currentMonth}`, day);
+        }
+        box.innerText = day;
+        calendar.appendChild(box);
+      }
+    }
+
+    function changeMonth(offset) {
+      currentMonth += offset;
+      if (currentMonth < 1) {
+        currentMonth = 12;
+        currentYear--;
+      } else if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear++;
+      }
+      renderCalendar();
+    }
+
+    function jumpToFull(ym, day) {
+      showFullView(() => {
+        const index = fullDates.findIndex(entry => entry.date === `${ym}-${day}`);
+        if (index !== -1) {
+          currentFullIndex = index;
+          renderFull();
+        }
+      });
+    }
+
+    function showFullView(callback) {
+      document.getElementById("entry-view").style.display = "none";
+      document.getElementById("full-view").style.display = "block";
+      fullDates = [];
+
+      for (let ym in diaryData) {
+        for (let d in diaryData[ym]) {
+          fullDates.push({date: ym + '-' + d, ...diaryData[ym][d]});
+        }
+      }
+
+      fullDates.sort((a, b) => {
+        const [ya, ma, da] = a.date.split('-').map(Number);
+        const [yb, mb, db] = b.date.split('-').map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+      });
+
+      currentFullIndex = 0;
+      if (callback) callback();
+      else renderFull();
+    }
+
+    function renderFull() {
+      const data = fullDates[currentFullIndex];
+      const [y, m, d] = data.date.split("-");
+      document.getElementById("full-date").innerText = `${y}년 ${m}월 ${d}일`;
+      document.getElementById("full-img").src = data.img;
+      document.getElementById("full-text").innerText = data.text;
+      window.scrollTo(0, document.getElementById("full-view").offsetTop);
+    }
+
+    function prevFull() {
+      if (currentFullIndex > 0) {
+        currentFullIndex--;
+        renderFull();
+      }
+    }
+
+    function nextFull() {
+      if (currentFullIndex < fullDates.length - 1) {
+        currentFullIndex++;
+        renderFull();
+      }
+    }
+
+    renderCalendar();
+  </script>
+</body>
+</html>
